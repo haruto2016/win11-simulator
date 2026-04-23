@@ -200,27 +200,37 @@
   // --- App: Edge Browser ---
   function openEdge() {
     const container = el("div");
-    container.style.cssText = "height:100%; display:flex; flex-direction:column; background:white;";
+    container.style.cssText = "height:100%; display:flex; flex-direction:column; background:white; color: #333;";
     const toolbar = el("div");
-    toolbar.style.cssText = "height:40px; background:#f3f3f3; display:flex; align-items:center; padding:0 10px; gap:10px; border-bottom:1px solid #ddd;";
+    toolbar.style.cssText = "height:45px; background:#f3f3f3; display:flex; align-items:center; padding:0 12px; gap:12px; border-bottom:1px solid #ddd;";
     toolbar.innerHTML = `
-      <div style="display:flex; gap:8px;"><span>${IC.back}</span><span>${IC.forward}</span><span>${IC.reload}</span></div>
-      <input id="edge-url" value="https://www.google.com" style="flex:1; padding:4px 10px; border-radius:20px; border:1px solid #ccc; font-size:12px;">
+      <div style="display:flex; gap:12px; cursor:default;"><span>${IC.back}</span><span>${IC.forward}</span><span style="cursor:pointer;" id="edge-reload">${IC.reload}</span></div>
+      <input id="edge-url" value="https://www.google.com/search?igu=1" style="flex:1; padding:6px 14px; border-radius:20px; border:1px solid #ccc; font-size:12px; outline:none; background:white;">
     `;
+    const infoBar = el("div");
+    infoBar.style.cssText = "background:#fff9c4; font-size:10px; padding:2px 10px; color:#555; border-bottom:1px solid #eee;";
+    infoBar.innerText = "ℹ️ セキュリティ設定により、YouTubeなどの一部のサイトは表示できない場合があります。";
+    
     const iframe = el("iframe");
-    iframe.src = "https://www.google.com/search?igu=1"; // igu=1 allows some embedding
+    iframe.src = "https://www.google.com/search?igu=1";
     iframe.style.cssText = "flex:1; border:none; background:white;";
 
     const inp = toolbar.querySelector('#edge-url');
-    inp.onkeydown = (e) => {
-      if(e.key === 'Enter') {
-        let url = inp.value;
-        if(!url.startsWith('http')) url = 'https://' + url;
-        iframe.src = url;
-      }
+    const reloadBtn = toolbar.querySelector('#edge-reload');
+    
+    const loadUrl = () => {
+      let url = inp.value;
+      if(!url.includes('.')) url = 'https://www.google.com/search?igu=1&q=' + encodeURIComponent(url);
+      else if(!url.startsWith('http')) url = 'https://' + url;
+      iframe.src = url;
     };
 
-    container.appendChild(toolbar); container.appendChild(iframe);
+    inp.onkeydown = (e) => { if(e.key === 'Enter') loadUrl(); };
+    reloadBtn.onclick = () => { const s = iframe.src; iframe.src = ''; iframe.src = s; };
+
+    container.appendChild(toolbar);
+    container.appendChild(infoBar);
+    container.appendChild(iframe);
     createWindow({ title: "Microsoft Edge", icon: IC.edge, content: container });
   }
 

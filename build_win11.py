@@ -363,24 +363,21 @@ def build():
     b = B()
     
     # Sequence: When Flag Clicked -> Windows Init
-    f = b.flag()
-    i = b.win11_init()
-    b._chain([f, i], top=True)
+    start = b.flag()
+    init = b.win11_init()
+    wait1 = b.wait(0.5)
+    
+    # Forever loop (keeps the project running)
+    loop_noop = b.wait(1)
+    forever = b.forever(loop_noop)
+    
+    b._chain([start, init, wait1, forever], top=True)
     b.resolve_parents()
     
     # ---- Create empty costume for controller sprite ----
     empty_svg = '<svg version="1.1" width="2" height="2" viewBox="-1 -1 2 2" xmlns="http://www.w3.org/2000/svg"></svg>'
     empty_svg_bytes = empty_svg.encode("utf-8")
     empty_md5 = md5_bytes(empty_svg_bytes)
-    
-    wait1 = b.wait(0.5)
-    
-    # Forever loop (keeps the project running)
-    wait_loop = b.wait(1)
-    forever = b.forever(wait_loop)
-    
-    b._chain([start, init, wait1, forever], top=True)
-    b.resolve_parents()
     
     # ---- Build costumes for wallpapers ----
     backdrop_costumes = []

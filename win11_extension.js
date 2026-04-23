@@ -333,25 +333,29 @@
 
   // --- Auth UI ---
   function showLoginUI() {
+    if (document.getElementById('w11-login-screen')) return;
     const div = el("div", "w11-login-screen");
+    div.id = 'w11-login-screen';
     div.style = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);backdrop-filter:blur(30px);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;`;
     div.innerHTML = `
-      <img src="https://img.icons8.com/fluency/96/user-male-circle.png" style="margin-bottom:20px;">
-      <h2 style="margin-bottom:25px;">Windows 11 Sign-in</h2>
-      <input id="u" placeholder="User" style="width:250px;padding:10px;margin-bottom:10px;border-radius:4px;border:none;background:rgba(255,255,255,0.1);color:white;">
-      <input id="p" type="password" placeholder="Pass" style="width:250px;padding:10px;margin-bottom:20px;border-radius:4px;border:none;background:rgba(255,255,255,0.1);color:white;">
-      <button id="l" style="width:250px;padding:10px;background:var(--accent);color:white;border:none;border-radius:4px;cursor:pointer;">Login</button>
-      <button id="r" style="margin-top:10px;background:none;border:none;color:#aaa;cursor:pointer;">Register</button>
+      <div style="background:rgba(255,255,255,0.05);padding:40px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);text-align:center;width:340px;">
+        <img src="https://img.icons8.com/fluency/96/user-male-circle.png" style="margin-bottom:20px;width:80px;">
+        <h2 style="margin-bottom:25px;font-size:22px;font-weight:400;">Windows 11 Sign-in</h2>
+        <input id="u" placeholder="User" style="width:100%;padding:12px;margin-bottom:10px;border-radius:6px;border:none;background:rgba(0,0,0,0.3);color:white;outline:none;border:1px solid rgba(255,255,255,0.1);">
+        <input id="p" type="password" placeholder="Pass" style="width:100%;padding:12px;margin-bottom:20px;border-radius:6px;border:none;background:rgba(0,0,0,0.3);color:white;outline:none;border:1px solid rgba(255,255,255,0.1);">
+        <button id="l" style="width:100%;padding:12px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Sign in</button>
+        <button id="r" style="margin-top:15px;background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;">Create a new account</button>
+        <p id="auth-msg" style="margin-top:20px;font-size:13px;min-height:1.2em;"></p>
+      </div>
     `;
     document.body.appendChild(div);
-    const msg = div.querySelector('#auth-msg') || el('p');
-    msg.id = 'auth-msg';
-    msg.style.marginTop = '15px';
-    if (!div.querySelector('#auth-msg')) div.querySelector('div').appendChild(msg);
+    
+    const msg = div.querySelector('#auth-msg');
 
     div.querySelector('#l').onclick = async () => {
       const username = div.querySelector('#u').value;
       const password = div.querySelector('#p').value;
+      if (!username || !password) { msg.innerText = 'Please enter both fields'; return; }
       msg.innerText = 'Signing in...';
       try {
         const res = await apiRequest('/auth/login', 'POST', {username, password});
@@ -362,6 +366,7 @@
           await loadCloudFiles();
         } else {
           msg.innerText = res.message || 'Login failed';
+          msg.style.color = '#ff6666';
         }
       } catch (e) { msg.innerText = 'Connection error'; }
     };
@@ -369,6 +374,7 @@
     div.querySelector('#r').onclick = async () => {
       const username = div.querySelector('#u').value;
       const password = div.querySelector('#p').value;
+      if (!username || !password) { msg.innerText = 'Please enter both fields'; return; }
       msg.innerText = 'Registering...';
       try {
         const res = await apiRequest('/auth/register', 'POST', {username, password});
@@ -377,7 +383,7 @@
           msg.style.color = '#00ff00';
         } else {
           msg.innerText = res.message || 'Registration failed';
-          msg.style.color = '#ff4444';
+          msg.style.color = '#ff6666';
         }
       } catch (e) { msg.innerText = 'Connection error'; }
     };

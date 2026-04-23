@@ -168,7 +168,51 @@
   }
 
   function openYouTube() {
-    openEdge("https://piped.video");
+    const container = el("div");
+    container.style.cssText = "height:100%; display:flex; flex-direction:column; background:#000;";
+    
+    const toolbar = el("div");
+    toolbar.style.cssText = "height:50px; background:#222; display:flex; align-items:center; padding:0 15px; gap:10px; border-bottom:1px solid #333;";
+    toolbar.innerHTML = `
+      <b style="color:white; font-size:12px; white-space:nowrap;">URL:</b>
+      <input id="yt-url" placeholder="YouTubeのURLを貼り付け（例: https://www.youtube.com/watch?v=...）" style="flex:1; padding:8px 12px; border-radius:4px; border:none; background:#333; color:white; font-size:12px; outline:none;">
+      <button id="yt-play" style="padding:8px 20px; background:#ff0000; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">再生</button>
+    `;
+    
+    const iframe = el("iframe");
+    iframe.style.cssText = "flex:1; border:none; background:#000;";
+    iframe.src = "https://piped.video"; // 初期表示はフルブラウジング用
+    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    iframe.allowFullscreen = true;
+
+    const inp = toolbar.querySelector('#yt-url');
+    const playBtn = toolbar.querySelector('#yt-play');
+
+    const playVideo = () => {
+      let url = inp.value;
+      if (!url) return;
+      
+      let videoId = "";
+      if (url.includes('v=')) videoId = url.split('v=')[1].split('&')[0];
+      else if (url.includes('youtu.be/')) videoId = url.split('be/')[1].split('?')[0];
+      else if (url.includes('embed/')) videoId = url.split('embed/')[1].split('?')[0];
+
+      if (videoId) {
+        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+        inp.value = `https://www.youtube.com/watch?v=${videoId}`;
+      } else {
+        // IDが見つからない場合はGoogle検索経由またはそのまま
+        if (!url.startsWith('http')) url = 'https://' + url;
+        iframe.src = url;
+      }
+    };
+
+    inp.onkeydown = (e) => { if(e.key === 'Enter') playVideo(); };
+    playBtn.onclick = playVideo;
+
+    container.appendChild(toolbar);
+    container.appendChild(iframe);
+    createWindow({ title: "YouTube Player", icon: "🎬", content: container, width: 800, height: 500 });
   }
 
   function createWindow({ title, icon, content, width=640, height=440 }) {

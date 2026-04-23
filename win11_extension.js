@@ -119,6 +119,7 @@
       { id: 'start', icon: IC.start, color: '#0078d4' },
       { id: 'explorer', icon: IC.folder },
       { id: 'edge', icon: IC.edge },
+      { id: 'youtube', icon: '🎬', color: '#ff0000' },
       { id: 'notepad', icon: IC.notepad },
       { id: 'calc', icon: IC.calc },
       { id: 'settings', icon: IC.settings }
@@ -159,10 +160,15 @@
   function openApp(id) {
     startMenu.classList.remove("open");
     if (id === 'edge') openEdge();
+    else if (id === 'youtube') openYouTube();
     else if (id === 'explorer') openExplorer();
     else if (id === 'notepad') openNotepad();
     else if (id === 'calc') openCalc();
     else if (id === 'settings') openSettings();
+  }
+
+  function openYouTube() {
+    openEdge("https://piped.video");
   }
 
   function createWindow({ title, icon, content, width=640, height=440 }) {
@@ -198,21 +204,21 @@
   }
 
   // --- App: Edge Browser ---
-  function openEdge() {
+  function openEdge(startUrl = "https://www.google.com/search?igu=1") {
     const container = el("div");
     container.style.cssText = "height:100%; display:flex; flex-direction:column; background:white; color: #333;";
     const toolbar = el("div");
     toolbar.style.cssText = "height:45px; background:#f3f3f3; display:flex; align-items:center; padding:0 12px; gap:12px; border-bottom:1px solid #ddd;";
     toolbar.innerHTML = `
       <div style="display:flex; gap:12px; cursor:default;"><span>${IC.back}</span><span>${IC.forward}</span><span style="cursor:pointer;" id="edge-reload">${IC.reload}</span></div>
-      <input id="edge-url" value="https://www.google.com/search?igu=1" style="flex:1; padding:6px 14px; border-radius:20px; border:1px solid #ccc; font-size:12px; outline:none; background:white;">
+      <input id="edge-url" value="${startUrl}" style="flex:1; padding:6px 14px; border-radius:20px; border:1px solid #ccc; font-size:12px; outline:none; background:white;">
     `;
     const infoBar = el("div");
     infoBar.style.cssText = "background:#fff9c4; font-size:10px; padding:2px 10px; color:#555; border-bottom:1px solid #eee;";
     infoBar.innerText = "ℹ️ セキュリティ設定により、YouTubeなどの一部のサイトは表示できない場合があります。";
     
     const iframe = el("iframe");
-    iframe.src = "https://www.google.com/search?igu=1";
+    iframe.src = startUrl;
     iframe.style.cssText = "flex:1; border:none; background:white;";
 
     const inp = toolbar.querySelector('#edge-url');
@@ -220,8 +226,22 @@
     
     const loadUrl = () => {
       let url = inp.value;
-      if(!url.includes('.')) url = 'https://www.google.com/search?igu=1&q=' + encodeURIComponent(url);
-      else if(!url.startsWith('http')) url = 'https://' + url;
+      // YouTubeの通常URLを埋め込みURLに自動変換
+      if (url.includes('youtube.com/watch?v=')) {
+        const videoId = url.split('v=')[1].split('&')[0];
+        url = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      } else if (url.includes('youtu.be/')) {
+        const videoId = url.split('be/')[1].split('?')[0];
+        url = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      } else if (url.includes('youtube.com') && !url.includes('/embed/')) {
+        // YouTubeのトップページなどは表示できないため、代替フロントエンドを勧める
+        url = 'https://piped.video'; 
+      } else if(!url.includes('.')) {
+        url = 'https://www.google.com/search?igu=1&q=' + encodeURIComponent(url);
+      } else if(!url.startsWith('http')) {
+        url = 'https://' + url;
+      }
+      inp.value = url;
       iframe.src = url;
     };
 

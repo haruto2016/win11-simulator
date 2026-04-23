@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 11 Simulator - TurboWarp</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+            color: #fff;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 18px;
+            font-weight: 400;
+            margin-bottom: 12px;
+            opacity: 0.7;
+        }
+        .instructions {
+            font-size: 13px;
+            opacity: 0.5;
+            margin-bottom: 16px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .instructions code {
+            background: rgba(255,255,255,0.1);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        iframe {
+            width: 960px;
+            height: 720px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: #1a1a2e;
+        }
+        @media (max-width: 1000px) {
+            iframe {
+                width: 95vw;
+                height: 71.25vw;
+            }
+        }
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .btn {
+            padding: 8px 20px;
+            background: #0078D4;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #1a8ae6; }
+        .btn.secondary {
+            background: rgba(255,255,255,0.1);
+        }
+        .btn.secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>🪟 Windows 11 Simulator</h1>
+    <div class="instructions">
+        TurboWarpエディタで <code>windows11_sim.sb3</code> を読み込み、<br>
+        カスタム拡張機能 <code>win11_extension.js</code> をロード後、🏳 グリーンフラッグをクリック
+    </div>
+
+    <iframe 
+        src="https://turbowarp.org/editor?fps=60&clones=Infinity&offscreen&interpolate&hqpen&limitless&turbo"
+        id="turbowarp-frame"
+        allow="clipboard-read; clipboard-write; gamepad; microphone"
+        allowfullscreen
+    ></iframe>
+
+    <div class="btn-row">
+        <button class="btn" onclick="openFullscreen()">📺 フルスクリーン</button>
+        <button class="btn secondary" onclick="window.open('https://turbowarp.org/editor','_blank')">🔗 新しいタブで開く</button>
+    </div>
+
+    <script>
+        function openFullscreen() {
+            const iframe = document.getElementById('turbowarp-frame');
+            if (iframe.requestFullscreen) {
+                iframe.requestFullscreen();
+            } else if (iframe.webkitRequestFullscreen) {
+                iframe.webkitRequestFullscreen();
+            }
+        }
+    </script>
+</body>
+</html>

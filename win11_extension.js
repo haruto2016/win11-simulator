@@ -100,9 +100,16 @@
 
       @keyframes w11-open { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     `;
-    const stageParent = Scratch.vm.runtime.renderer.canvas.parentElement;
-    stageParent.style.position = "relative";
-    stageParent.style.overflow = "hidden";
+    const canvas = Scratch.vm.runtime.renderer.canvas;
+    const stageParent = canvas.parentElement;
+    
+    // 背景のズレを防ぐため、親のスタイルを壊さないように配置
+    overlay.style.cssText = `
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      overflow: hidden; pointer-events: none; z-index: 100;
+      font-family: 'Segoe UI Variable', system-ui, sans-serif;
+    `;
+
     stageParent.appendChild(style);
     stageParent.appendChild(overlay);
 

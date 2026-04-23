@@ -1280,7 +1280,12 @@
         if (name === "ファイル") {
           const fname = prompt("ファイル名を入力:", "untitled.txt");
           if (fname) {
-            const blob = new Blob([textarea.value], { type: "text/plain" });
+            const content = textarea.value;
+            // Cloud Sync
+            syncFileToCloud({ name: fname, type: 'file', content: content, path: 'C:/Users/User/Documents/' + fname });
+            
+            // Local Download
+            const blob = new Blob([content], { type: "text/plain" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = fname;
@@ -1709,6 +1714,77 @@
   // ========================================================
   //  SCRATCH EXTENSION CLASS
   // ========================================================
+  const API_BASE = 'https://web-production-18337.up.railway.app';
+  let currentUser = localStorage.getItem('win11_user') || null;
+  let virtualFS = [];
+
+  // --- Cloud & Auth Helper ---
+  async function apiRequest(endpoint, method = 'GET', body = null) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(`${API_BASE}${endpoint}`, opts);
+    if (!res.ok) throw new Error('API Error');
+    return res.json();
+  }
+
+  async function syncFileToCloud(file) {
+    if (!currentUser) return;
+    try { await apiRequest(`/files/${currentUser}`, 'POST', file); }
+    catch (e) { console.error('Sync error', e); }
+  }
+
+  async function loadCloudFiles() {
+    if (!currentUser) return;
+    try {
+      const files = await apiRequest(`/files/${currentUser}`);
+      virtualFS = files;
+      console.log('Files loaded from cloud:', files.length);
+    } catch (e) { console.error('Load error', e); }
+  }
+
+  function showLoginUI() {
+    if (document.getElementById('win11-login-screen')) return;
+    const div = document.createElement('div');
+    div.id = 'win11-login-screen';
+    div.style = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(15px);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;font-family:'Segoe UI',sans-serif;`;
+    div.innerHTML = `
+      <div style="background:rgba(255,255,255,0.1);padding:40px;border-radius:15px;text-align:center;width:350px;border:1px solid rgba(255,255,255,0.1);">
+        <img src="https://img.icons8.com/fluency/96/user-male-circle.png" style="margin-bottom:20px;">
+        <h2 style="margin-bottom:25px;">Windows 11 Sign-in</h2>
+        <input id="auth-u" type="text" placeholder="Username" style="width:100%;padding:12px;margin-bottom:10px;border-radius:6px;border:none;background:rgba(0,0,0,0.3);color:white;">
+        <input id="auth-p" type="password" placeholder="Password" style="width:100%;padding:12px;margin-bottom:20px;border-radius:6px;border:none;background:rgba(0,0,0,0.3);color:white;">
+        <button id="auth-login" style="width:100%;padding:12px;background:#0078d4;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Sign in</button>
+        <p id="auth-msg" style="margin-top:15px;font-size:13px;color:#aaa;"></p>
+        <hr style="margin:20px 0;opacity:0.2;">
+        <button id="auth-reg" style="background:none;border:none;color:#0078d4;cursor:pointer;font-size:13px;">Create a new account</button>
+      </div>
+    `;
+    document.body.appendChild(div);
+
+    div.querySelector('#auth-login').onclick = async () => {
+      const username = div.querySelector('#auth-u').value;
+      const password = div.querySelector('#auth-p').value;
+      try {
+        const res = await apiRequest('/auth/login', 'POST', {username, password});
+        if (res.status === 'success') {
+          currentUser = username;
+          localStorage.setItem('win11_user', username);
+          div.remove();
+          await loadCloudFiles();
+        }
+      } catch (e) { div.querySelector('#auth-msg').innerText = 'Authentication failed.'; }
+    };
+
+    div.querySelector('#auth-reg').onclick = async () => {
+      const username = div.querySelector('#auth-u').value;
+      const password = div.querySelector('#auth-p').value;
+      try {
+        await apiRequest('/auth/register', 'POST', {username, password});
+        div.querySelector('#auth-msg').innerText = 'Account created! Please sign in.';
+      } catch (e) { div.querySelector('#auth-msg').innerText = 'Registration failed.'; }
+    };
+  }
+
   class Win11Extension {
     getInfo() {
       return {
@@ -1841,10 +1917,14 @@
 
     initDesktop() {
       if (!initialized) {
-        // Small delay to let the stage render first
-        setTimeout(() => {
+        setTimeout(async () => {
           createDesktop();
           initialized = true;
+          if (currentUser) {
+            await loadCloudFiles();
+          } else {
+            showLoginUI();
+          }
         }, 500);
       }
     }

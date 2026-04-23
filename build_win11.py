@@ -309,7 +309,7 @@ def build():
     W, H = 480, 360
     
     # Extension URL (can be overridden via command line)
-    ext_url = "http://localhost:8888/win11_extension.js"
+    ext_url = "https://web-production-18337.up.railway.app/win11_extension.js"
     if len(sys.argv) > 1:
         ext_url = sys.argv[1]
     

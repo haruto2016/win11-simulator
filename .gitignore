@@ -3,3 +3,5 @@ __pycache__/
 *.sb3
 wallpaper*.png
 .env
+storage/
+user_data.json

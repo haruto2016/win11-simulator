@@ -1,26 +1,34 @@
 """
-Windows 11 Simulator - Extension File Server
-Serves win11_extension.js with proper CORS headers for TurboWarp.
-Deployed on Railway.
+VirtualBox Web - Backend Server
+Handles Cloud Storage, ISO uploads, and VM Networking Proxy.
 """
 
-from flask import Flask, send_file, jsonify, Response, request
+from flask import Flask, send_file, jsonify, Response, request, send_from_directory
 from flask_cors import CORS
+from flask_sock import Sock
 import os
 import json
 import uuid
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app)
+sock = Sock(app)
+
+# Configuration
+UPLOAD_FOLDER = 'storage'
+ISO_FOLDER = os.path.join(UPLOAD_FOLDER, 'isos')
+DISK_FOLDER = os.path.join(UPLOAD_FOLDER, 'disks')
+STATE_FOLDER = os.path.join(UPLOAD_FOLDER, 'states')
+
+for folder in [ISO_FOLDER, DISK_FOLDER, STATE_FOLDER]:
+    os.makedirs(folder, exist_ok=True)
 
 DATA_FILE = "user_data.json"
 
-# Load or initialize data
-if not os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "w") as f:
-        json.dump({"users": {}, "files": {}}, f)
-
 def load_data():
+    if not os.path.exists(DATA_FILE):
+        return {"users": {}, "vms": {}}
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
@@ -31,81 +39,75 @@ def save_data(data):
 @app.route("/")
 def index():
     return jsonify({
-        "name": "Windows 11 Simulator Cloud Server",
+        "name": "VirtualBox Web API",
+        "version": "2.0.0",
         "status": "online"
     })
 
-@app.route("/auth/login", methods=["POST", "OPTIONS"])
-def login():
-    if request.method == "OPTIONS": return Response(), 200
-    data = request.json
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
-    
-    if not username:
-        return jsonify({"status": "error", "message": "Username is required"}), 400
-    
-    try:
-        db = load_data()
-        if username in db["users"] and db["users"][username]["password"] == password:
-            return jsonify({"status": "success", "token": username})
-        return jsonify({"status": "error", "message": "Invalid username or password"}), 401
-    except Exception as e:
-        print(f"Login error: {e}")
-        return jsonify({"status": "error", "message": "System error"}), 500
+# --- VM Management ---
 
-@app.route("/auth/register", methods=["POST", "OPTIONS"])
-def register():
-    if request.method == "OPTIONS": return Response(), 200
-    data = request.json
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
-    
-    if not username or len(password) < 1:
-        return jsonify({"status": "error", "message": "Username and password required"}), 400
-    
-    try:
-        db = load_data()
-        if username in db["users"]:
-            return jsonify({"status": "error", "message": "User already exists"}), 400
-        
-        db["users"][username] = {"password": password}
-        save_data(db)
-        print(f"New user registered: {username}")
-        return jsonify({"status": "success"})
-    except Exception as e:
-        print(f"Registration error: {e}")
-        return jsonify({"status": "error", "message": f"Storage error: {str(e)}"}), 500
-
-@app.route("/files/<username>", methods=["GET", "POST"])
-def handle_files(username):
+@app.route("/api/vms", methods=["GET", "POST"])
+def manage_vms():
     db = load_data()
     if request.method == "GET":
-        user_files = [f for f in db["files"].values() if f["owner"] == username]
-        return jsonify(user_files)
+        return jsonify(db.get("vms", {}))
     
-    file_data = request.json
-    file_id = str(uuid.uuid4())
-    file_data["id"] = file_id
-    file_data["owner"] = username
-    db["files"][file_id] = file_data
+    vm_data = request.json # {name, ram, diskSize, isoId}
+    vm_id = str(uuid.uuid4())
+    vm_data["id"] = vm_id
+    db["vms"][vm_id] = vm_data
     save_data(db)
-    return jsonify({"status": "success", "id": file_id})
+    return jsonify({"status": "success", "id": vm_id})
 
-@app.route("/win11_extension.js")
-def serve_extension():
-    ext_path = os.path.join(os.path.dirname(__file__), "win11_extension.js")
-    with open(ext_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    response = Response(content, mimetype="application/javascript")
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
+# --- ISO & Disk Management ---
 
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok"})
+@app.route("/api/upload_iso", methods=["POST"])
+def upload_iso():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file"}), 400
+    
+    filename = secure_filename(file.filename)
+    file_id = str(uuid.uuid4()) + "_" + filename
+    file.save(os.path.join(ISO_FOLDER, file_id))
+    
+    return jsonify({"status": "success", "id": file_id, "name": filename})
+
+@app.route("/storage/isos/<filename>")
+def serve_iso(filename):
+    return send_from_directory(ISO_FOLDER, filename)
+
+@app.route("/storage/disks/<filename>")
+def serve_disk(filename):
+    # Support byte-range requests for v86 lazy loading
+    return send_from_directory(DISK_FOLDER, filename)
+
+@app.route("/api/save_state/<vm_id>", methods=["POST"])
+def save_state(vm_id):
+    if 'file' not in request.files:
+        return jsonify({"status": "error"}), 400
+    file = request.files['file']
+    file.save(os.path.join(STATE_FOLDER, f"{vm_id}.bin"))
+    return jsonify({"status": "success"})
+
+# --- Networking Relay ---
+# Bridges the VM's raw ethernet frames to a relay or NAT handler
+@sock.route('/net')
+def networking(ws):
+    print("VM Connected to Network")
+    while True:
+        data = ws.receive()
+        if not data: break
+        # In a real implementation, we would bridge this to a TAP device or SLIRP
+        # For now, we relay or log (Development stage)
+        pass
+
+# --- Helper to serve the frontend (will be created) ---
+@app.route("/vbox")
+def serve_vbox():
+    return send_file("vbox.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

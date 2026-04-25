@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VirtualBox Web Edition</title>
+    <link rel="stylesheet" href="vbox.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <span style="font-size: 24px;">📦</span> Oracle VM VirtualBox
+        </div>
+        <div class="vm-list" id="vm-list">
+            <!-- VMs will be injected here -->
+            <div class="vm-item active" onclick="selectVM('win11')">
+                <div class="vm-icon">🪟</div>
+                <div class="vm-info">
+                    <span class="vm-name">Windows 11 (Cloud)</span>
+                    <span class="vm-status">電源オフ</span>
+                </div>
+            </div>
+        </div>
+        <div style="padding: 20px; border-top: 1px solid var(--border);">
+            <button class="btn btn-secondary" style="width: 100%;" onclick="showModal('new-vm-modal')">＋ 新規作成</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-stage">
+        <header class="toolbar">
+            <button class="tool-btn" onclick="showModal('new-vm-modal')"><span>📄</span><span>新規</span></button>
+            <button class="tool-btn"><span>⚙️</span><span>設定</span></button>
+            <div style="width: 1px; height: 30px; background: var(--border);"></div>
+            <button class="tool-btn primary" id="start-btn" onclick="startVM()"><span>▶️</span><span>起動</span></button>
+            <button class="tool-btn" id="stop-btn" onclick="stopVM()" disabled><span>⏹️</span><span>停止</span></button>
+            <div style="flex: 1;"></div>
+            <button class="tool-btn" onclick="uploadISO()"><span>📀</span><span>ISO読込</span></button>
+            <button class="tool-btn" id="usb-btn" onclick="requestUSB()"><span>🔌</span><span>USB</span></button>
+        </header>
+
+        <section class="details-view" id="details-view">
+            <div id="vm-details">
+                <h1 id="selected-vm-name">Windows 11 (Cloud)</h1>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 8px;">
+                        <h3>システム</h3>
+                        <p style="margin-top:10px; opacity:0.7;">ベースメモリー: 4096 MB</p>
+                        <p style="opacity:0.7;">プロセッサー: 2 CPU</p>
+                        <p style="opacity:0.7;">ブート順序: 光学, ハードディスク</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 8px;">
+                        <h3>ディスプレイ</h3>
+                        <p style="margin-top:10px; opacity:0.7;">ビデオメモリー: 128 MB</p>
+                        <p style="opacity:0.7;">グラフィックスコントローラー: VMSVGA</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vm-display-container" id="vm-display-container">
+                <canvas id="screen" class="vbox-canvas"></canvas>
+            </div>
+        </section>
+
+        <footer class="status-bar">
+            <span>READY</span>
+            <div style="display:flex; gap:15px;">
+                <span id="stat-net">🌐 NET: ON</span>
+                <span id="stat-usb">🔌 USB: READY</span>
+            </div>
+        </footer>
+    </main>
+
+    <!-- New VM Modal -->
+    <div class="modal" id="new-vm-modal">
+        <div class="modal-content">
+            <h2>仮想マシンの作成</h2>
+            <form style="margin-top: 20px;">
+                <div>
+                    <label>名前</label>
+                    <input type="text" id="new-vm-name" placeholder="My Virtual Machine">
+                </div>
+                <div>
+                    <label>ISOイメージ</label>
+                    <select id="new-vm-iso">
+                        <option value="none">未選択</option>
+                        <option value="tiny11">Tiny11 (Optimized Windows 11)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>メモリー (MB)</label>
+                    <input type="range" min="512" max="8192" step="512" value="4096" oninput="this.nextElementSibling.innerText = this.value + ' MB'">
+                    <span>4096 MB</span>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('new-vm-modal')">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="createVM()">作成</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://copy.sh/v86/libv86.js"></script>
+    <script src="emulator.js"></script>
+</body>
+</html>
